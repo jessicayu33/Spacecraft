@@ -4,7 +4,7 @@ Student Information
 Student ID: 1155077785
 Student Name: Li Ho Yin
 *********************************************************/
-
+#define _CRT_SECURE_NO_WARNINGS
 #include "Dependencies\glew\glew.h"
 #include "Dependencies\freeglut\freeglut.h"
 #include "Dependencies\glm\glm.hpp"
@@ -23,7 +23,7 @@ using glm::mat4;
 float ninety = M_PI / 2.0;
 float angle = M_PI / 8.0;
 GLint programID;
-int width_W = 800;
+int width_W = 1024;
 int height_W = 800;
 // Could define the Vao&Vbo and interaction parameter here
 // init Vertex Array Object
@@ -40,12 +40,13 @@ std::vector<glm::vec3> normalsA;
 std::vector<glm::vec3> verticesB;
 std::vector<glm::vec2> uvsB;
 std::vector<glm::vec3> normalsB;
-//obj Ring
-std::vector<glm::vec3> verticesC;
-std::vector<glm::vec2> uvsC;
-std::vector<glm::vec3> normalsC;
+//obj Rings
+std::vector<glm::vec3> verticesC[3];
+std::vector<glm::vec2> uvsC[3];
+std::vector<glm::vec3> normalsC[3];
 
 //obj Wonder Star
+int wonderstarID = sizeof(verticesC) / sizeof(verticesC[0]) + 2;
 std::vector<glm::vec3> verticesD;
 std::vector<glm::vec2> uvsD;
 std::vector<glm::vec3> normalsD;
@@ -55,18 +56,16 @@ std::vector<glm::vec3> verticesE;
 std::vector<glm::vec2> uvsE;
 std::vector<glm::vec3> normalsE;
 GLuint texture[10];
-
-const GLfloat triangle[] =
-{
-	-1.0f, -1.0f, +0.0f, //left
-	+1.0f, +1.0f, +0.0f, //color
-
-	+1.0f, -1.0f, +0.0f, //right 
-	+1.0f, +0.0f, +1.0f,
-
-	+0.0f, +0.0f, +0.0f, //top 
-	+0.0f, +1.0f, +1.0f,
-};
+//camera setting
+glm::vec3 cameraPos = glm::vec3(0.0f, 20.0f, 100.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+bool firstMouse = true;
+float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+float pitch = 0.0f;
+float lastX = 800.0f / 2.0;
+float lastY = 600.0 / 2.0;
+float fov = 45.0f;
 //a series utilities for setting shader parameters 
 void setMat4(const std::string &name, glm::mat4& value)
 {
@@ -259,6 +258,7 @@ void keyboard(unsigned char key, int x, int y)
 float car_x = 0;
 float car_z = -20;
 float car_rot_y = 0;
+float car_rot_z = M_PI;
 int direction = 1;
 int current_direction = 1;
 
@@ -272,70 +272,76 @@ void move(int key, int x, int y)
 	//TODO: Use arrow keys to do interactive events and animation
 	//	cam_x = x * 0.3 - 100;
 	//	cam_z = y * 0.3 - 100;
+	float cameraSpeed = 200.0f*0.1f;
 	if (key == GLUT_KEY_DOWN) {
-		switch (direction) {
-		case 1: 
-			cam_x-= 1; 
-			//car_x -= 1;
-			break;
-		case 2: 
-			cam_z-= 1; 
-			//car_z -= 1;
-			break;
-		case 3:
-			cam_x+= 1; 
-			//car_x -= 1; 
-			break;
-		case 4: 
-			cam_z+= 1; 
-			//car_z += 1; 
-			break;
-		}
-		printf("move to (%d,0,%d) \n", cam_x,cam_z);
+		cameraPos -= cameraSpeed * cameraFront;
+		//switch (direction) {
+		//case 1: 
+		//	cam_x-= 1; 
+		//	//car_x -= 1;
+		//	break;
+		//case 2: 
+		//	cam_z-= 1; 
+		//	//car_z -= 1;
+		//	break;
+		//case 3:
+		//	cam_x+= 1; 
+		//	//car_x -= 1; 
+		//	break;
+		//case 4: 
+		//	cam_z+= 1; 
+		//	//car_z += 1; 
+		//	break;
+		//}
+		//printf("move to (%d,0,%d) \n", cam_x,cam_z);
 	}
 	if (key == GLUT_KEY_UP) {
-		switch (direction) {
-		case 1: 
-			cam_x+= 1; 
-			//car_x += 1; 
-			break;
-		case 2: 
-			cam_z+= 1;
-			//car_z += 1; 
-			break;
-		case 3: 
-			cam_x-= 1;
-			//car_x -= 1; 
-			break;
-		case 4: 
-			cam_z-= 1;
-			//car_z -= 1; 
-			break;
-		}
-		printf("move to (%d,0,%d) \n", cam_x,cam_z);
+		cameraPos += cameraSpeed * cameraFront;
+
+		//switch (direction) {
+		//case 1: 
+		//	cam_x+= 1; 
+		//	//car_x += 1; 
+		//	break;
+		//case 2: 
+		//	cam_z+= 1;
+		//	//car_z += 1; 
+		//	break;
+		//case 3: 
+		//	cam_x-= 1;
+		//	//car_x -= 1; 
+		//	break;
+		//case 4: 
+		//	cam_z-= 1;
+		//	//car_z -= 1; 
+		//	break;
+		//}
+		//printf("move to (%d,0,%d) \n", cam_x,cam_z);
 	}
 	if (key == GLUT_KEY_LEFT) {
-		car_rot_y += angle;
-		if (direction == 1) {
-			direction = 4;
-		}
-		else
-			direction++;
-		printf("rot: %d\n", direction);
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+
+		//car_rot_y += angle;
+		//if (direction == 1) {
+		//	direction = 4;
+		//}
+		//else
+		//	direction++;
+		//printf("rot: %d\n", direction);
 	}
 	if (key == GLUT_KEY_RIGHT) {
-		car_rot_y -= angle;
-		if (direction == 4) {
-			direction = 1;
-		}
-		else
-			direction--;
-		printf("rot: %d\n", direction);
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		//car_rot_y -= angle;
+		//if (direction == 4) {
+		//	direction = 1;
+		//}
+		//else
+		//	direction--;
+		//printf("rot: %d\n", direction);
 	}
 
 }
-
-void PassiveMouse(int x, int y)
+void PassiveMouse(int xpos, int ypos)
 {
 	//TODO: Use Mouse to do interactive events and animation
 	
@@ -344,7 +350,37 @@ void PassiveMouse(int x, int y)
 	//	cam_z = y * 0.3 - 100;
 	//	printf("mouse moved %d %d", x, y);
 	//}
-	
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = -xpos + lastX;
+	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+	lastX = xpos;
+	lastY = ypos;
+
+	float sensitivity = 0.1f; // change this value to your liking
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	yaw += xoffset;
+	pitch += yoffset;
+
+	// make sure that when pitch is out of bounds, screen doesn't get flipped
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+
+	glm::vec3 front;
+	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	//front.y = sin(glm::radians(pitch));
+	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	car_rot_y =-glm::radians(yaw)+M_PI/2;
+	cameraFront = glm::normalize(front);
 }
 
 void mousewheel(int button, int dir, int x, int y) {
@@ -531,7 +567,7 @@ void sendDataToOpenGL()
 
 	//OBJ B
 	// load obj
-	loadOBJ("Ring.obj", verticesB, uvsB, normalsB);
+	loadOBJ("planet.obj", verticesB, uvsB, normalsB);
 	glBindVertexArray(vaoID[1]);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vboID[1]);
@@ -544,46 +580,50 @@ void sendDataToOpenGL()
 	glBufferData(GL_ARRAY_BUFFER, normalsB.size() * sizeof(glm::vec3), &normalsB[0], GL_STATIC_DRAW);
 
 	//OBJ C
-	// load obj
-	loadOBJ("planet.obj", verticesC, uvsC, normalsC);
-	glBindVertexArray(vaoID[2]);
+	// load rings
+	//for (int i = 0; i < sizeof(verticesC)/sizeof(verticesC[0]); i++) {
+	//	std::cout << i <<" ring\n";
+	//	loadOBJ("ring.obj", verticesC[i], uvsC[i], normalsC[i]);
+	//	glBindVertexArray(vaoID[2+i]);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vboID[2]);
-	glBufferData(GL_ARRAY_BUFFER, verticesC.size() * sizeof(glm::vec3), &verticesC[0], GL_STATIC_DRAW);
+	//	glBindBuffer(GL_ARRAY_BUFFER, vboID[2 + i]);
+	//	glBufferData(GL_ARRAY_BUFFER, verticesC[i].size() * sizeof(glm::vec3), &verticesC[i][0], GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ARRAY_BUFFER, uvboID[2]);
-	glBufferData(GL_ARRAY_BUFFER, uvsC.size() * sizeof(glm::vec2), &uvsC[0], GL_STATIC_DRAW);
+	//	glBindBuffer(GL_ARRAY_BUFFER, uvboID[2 + i]);
+	//	glBufferData(GL_ARRAY_BUFFER, uvsC[i].size() * sizeof(glm::vec2), &uvsC[i][0], GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ARRAY_BUFFER, nboID[2]);
-	glBufferData(GL_ARRAY_BUFFER, normalsC.size() * sizeof(glm::vec3), &normalsC[0], GL_STATIC_DRAW);
+	//	glBindBuffer(GL_ARRAY_BUFFER, nboID[2 + i]);
+	//	glBufferData(GL_ARRAY_BUFFER, normalsC[i].size() * sizeof(glm::vec3), &normalsC[i][0], GL_STATIC_DRAW);
+	//}
 
 	//OBJ D
 	// load obj
 	loadOBJ("planet.obj", verticesD, uvsD, normalsD);
-	glBindVertexArray(vaoID[3]);
+	
+	glBindVertexArray(vaoID[wonderstarID]);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vboID[3]);
+	glBindBuffer(GL_ARRAY_BUFFER, vboID[wonderstarID]);
 	glBufferData(GL_ARRAY_BUFFER, verticesD.size() * sizeof(glm::vec3), &verticesD[0], GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ARRAY_BUFFER, uvboID[3]);
+	glBindBuffer(GL_ARRAY_BUFFER, uvboID[wonderstarID]);
 	glBufferData(GL_ARRAY_BUFFER, uvsD.size() * sizeof(glm::vec2), &uvsD[0], GL_STATIC_DRAW);
 	
-	glBindBuffer(GL_ARRAY_BUFFER, nboID[3]);
+	glBindBuffer(GL_ARRAY_BUFFER, nboID[wonderstarID]);
 	glBufferData(GL_ARRAY_BUFFER, normalsD.size() * sizeof(glm::vec3), &normalsD[0], GL_STATIC_DRAW);
 
 	//OBJ E
 	// load obj
-	loadOBJ("rock.obj", verticesE, uvsE, normalsE);
-	glBindVertexArray(vaoID[4]);
+	//loadOBJ("rock.obj", verticesE, uvsE, normalsE);
+	//glBindVertexArray(vaoID[4]);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vboID[4]);
-	glBufferData(GL_ARRAY_BUFFER, verticesE.size() * sizeof(glm::vec3), &verticesE[0], GL_STATIC_DRAW);
+	//glBindBuffer(GL_ARRAY_BUFFER, vboID[4]);
+	//glBufferData(GL_ARRAY_BUFFER, verticesE.size() * sizeof(glm::vec3), &verticesE[0], GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ARRAY_BUFFER, uvboID[4]);
-	glBufferData(GL_ARRAY_BUFFER, uvsE.size() * sizeof(glm::vec2), &uvsE[0], GL_STATIC_DRAW);
+	//glBindBuffer(GL_ARRAY_BUFFER, uvboID[4]);
+	//glBufferData(GL_ARRAY_BUFFER, uvsE.size() * sizeof(glm::vec2), &uvsE[0], GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ARRAY_BUFFER, nboID[4]);
-	glBufferData(GL_ARRAY_BUFFER, normalsE.size() * sizeof(glm::vec3), &normalsE[0], GL_STATIC_DRAW);
+	//glBindBuffer(GL_ARRAY_BUFFER, nboID[4]);
+	//glBufferData(GL_ARRAY_BUFFER, normalsE.size() * sizeof(glm::vec3), &normalsE[0], GL_STATIC_DRAW);
 
 
 	texture[0] = loadBMP_custom("texture/spacecraftTexture.bmp");
@@ -601,24 +641,24 @@ void paintGL(void)
 	//glClearColor(1.0f, 1.0f, 1.0f, 1.0f); //specify the background color
 	glClearColor(0.1f, 0.1f, 0.1f, 0.1f); //specify the background color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glViewport(0, 0, width_W, height_W);
-	//TODO:
-	//Set lighting information, such as position and color of lighting source
-	//Set transformation matrix
-	//Bind different textures
+	glViewport(0, 0, 800, 800);
 
-	
-	//camera new
-	glm::vec3 cameraSight = center = vec3(0, 0.0f, -10.0f);
-	glm::vec3 cameraPostition = glm::vec3(cam_x, cam_y*1.0f, cam_z);
-	mat4 viewMatrix = glm::lookAt(cameraPostition, cameraPostition + cameraSight, up);
+	// camera library
+	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 	GLint viewMatrixUniformLocation = glGetUniformLocation(programID, "viewMatrix");
-	glUniformMatrix4fv(viewMatrixUniformLocation, 1, GL_FALSE, &viewMatrix[0][0]);
+	glUniformMatrix4fv(viewMatrixUniformLocation, 1, GL_FALSE, &view[0][0]);
+	
+	////camera new
+	//glm::vec3 cameraSight = center = vec3(0, 0.0f, -10.0f);
+	//glm::vec3 cameraPostition = glm::vec3(cam_x, cam_y*1.0f, cam_z);
+	//mat4 viewMatrix = glm::lookAt(cameraPostition, cameraPostition + cameraSight, up);
+	//GLint viewMatrixUniformLocation = glGetUniformLocation(programID, "viewMatrix");
+	//glUniformMatrix4fv(viewMatrixUniformLocation, 1, GL_FALSE, &viewMatrix[0][0]);
 	//projection setting
-	mat4 projectionMatrix = glm::perspective(100.0f, 1.0f, 1.0f, 100.0f);
+	mat4 projectionMatrix = glm::perspective(100.0f, 1.0f, 1.0f, 2000.0f);
 	GLint projectionMatrixUniformLocation = glGetUniformLocation(programID, "projectionMatrix");
 	glUniformMatrix4fv(projectionMatrixUniformLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
-	vec3 carCam = cameraPostition + vec3(0.0f, -20.0f, -100.0f);
+	vec3 carCam = cameraPos + vec3(0.0f, 30.0f, -150.0f);
 
 	//camera
 	//glm::vec3 cameraSight = center = vec3(0.0f, -10.0f, -1.0f);
@@ -642,31 +682,31 @@ void paintGL(void)
 	glUniform3fv(ambientLightUniformlocation, 1, &ambientLight[0]);
 
 	//specular
-	GLint eyePositionUniformLocation = glGetUniformLocation(programID, "eyePositionWorld");
+	//GLint eyePositionUniformLocation = glGetUniformLocation(programID, "eyePositionWorld");
 	//vec3 eyePosition(0.0f, 0.0f, 0.0f);
-	vec3 eyePosition = cameraPostition;
-	glUniform3fv(eyePositionUniformLocation, 1, &eyePosition[0]);
-	GLint lightPositionUniformLocation = glGetUniformLocation(programID, "lightPositionWorld");
+	//vec3 eyePosition = cameraPostition;
+	//glUniform3fv(eyePositionUniformLocation, 1, &eyePosition[0]);
+	//GLint lightPositionUniformLocation = glGetUniformLocation(programID, "lightPositionWorld");
 	// vec3 lightPosition(5.0f, 15.0f, -10.0f);
-	vec3 lightPosition(light_x, 15.0f,light_z);
-	glUniform3fv(lightPositionUniformLocation, 1, &lightPosition[0]);
+	//vec3 lightPosition(light_x, 15.0f,light_z);
+	//glUniform3fv(lightPositionUniformLocation, 1, &lightPosition[0]);
 	
 	//user control 
-	GLint brightness_diffuse_location = glGetUniformLocation(programID, "brightness_diffuse");
-	glUniform1f(brightness_diffuse_location, brightness_diffuse);
+	//GLint brightness_diffuse_location = glGetUniformLocation(programID, "brightness_diffuse");
+	//glUniform1f(brightness_diffuse_location, brightness_diffuse);
 
-	GLint brightness_specular_location = glGetUniformLocation(programID, "brightness_specular");
-	glUniform1f(brightness_specular_location, brightness_specular);
+	//GLint brightness_specular_location = glGetUniformLocation(programID, "brightness_specular");
+	//glUniform1f(brightness_specular_location, brightness_specular);
 
-	if (texID != current_texID) {
-		switch (texID) {
-		case 1: texture[2] = loadBMP_custom("theme1.bmp"); break;
-		case 2: texture[2] = loadBMP_custom("theme2.bmp"); break;
-		case 3: texture[2] = loadBMP_custom("theme3.bmp"); break;
-		default:texture[2] = loadBMP_custom("theme1.bmp"); break;
-		}
-		current_texID = texID;
-	}
+	//if (texID != current_texID) {
+	//	switch (texID) {
+	//	case 1: texture[2] = loadBMP_custom("theme1.bmp"); break;
+	//	case 2: texture[2] = loadBMP_custom("theme2.bmp"); break;
+	//	case 3: texture[2] = loadBMP_custom("theme3.bmp"); break;
+	//	default:texture[2] = loadBMP_custom("theme1.bmp"); break;
+	//	}
+	//	current_texID = texID;
+	//}
 	
 
 	mat4 modelTransformMatrix = glm::mat4(1.0f);
@@ -713,19 +753,19 @@ void paintGL(void)
 	// transform
 	modelTransformMatrix = glm::mat4(1.0f);
 	//vec3 movement = vec3(car_x,0.0f,car_z);
-	//vec3 movement = vec3(car_x, 0.0f, car_z) + carCam;
-	vec3 movement = vec3(0, 0.0f, 0) + carCam;
+	vec3 movement = vec3(car_x, 0.0f, car_z) + carCam;
+	//vec3 movement = vec3(0, 0.0f, 0) + carCam;
 	//translate
 	modelTransformMatrix =
 		glm::translate(glm::mat4(), movement)
-		* glm::rotate(mat4(), car_rot_y, vec3(0, 1, 0))
-		* glm::rotate(mat4(), 0.0f, vec3(1, 0, 0))
-		* glm::scale(glm::mat4(), glm::vec3(0.05f, 0.05f, 0.05f));
+		* glm::rotate(mat4(), 0.0f, vec3(0, 1, 0))
+		* glm::rotate(mat4(), car_rot_z, vec3(1, 0, 0))
+		* glm::scale(glm::mat4(), glm::vec3(0.03f, 0.03f, 0.03f));
 		//*glm::scale(glm::mat4(), glm::vec3(1.0f, 1.0f, 1.0f));
 	glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
 	glDrawArrays(GL_TRIANGLES, 0, verticesA.size());
 
-	// load earth 
+	// load eaerth 
 	glBindVertexArray(vaoID[1]);
 	glEnableVertexAttribArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, vboID[1]);
@@ -762,72 +802,113 @@ void paintGL(void)
 	glBindTexture(GL_TEXTURE_2D, texture[1]); //bind texture 
 	glUniform1i(TextureID, 0);
 	// transform
-	if (block_rotate == 1) {
-		block_rot_x += 1;
-		modelTransformMatrix =
-			glm::translate(glm::mat4(), vec3(5.0f, 5.0f, 2.0f))
-			* glm::rotate(mat4(), 0.0f, vec3(0, 1, 0))
-			* glm::rotate(mat4(), 0.01f*block_rot_x, vec3(1, 0, 0))
-			* glm::scale(glm::mat4(), glm::vec3(0.05f, 0.05f, 0.05f));
-	}
-	else {
-		modelTransformMatrix =
-			glm::translate(glm::mat4(), vec3(5.0f, 5.0f, 2.0f))
-			* glm::rotate(mat4(), 0.0f, vec3(0, 1, 0))
-			* glm::rotate(mat4(), 0.0f, vec3(1, 0, 0))
-			* glm::scale(glm::mat4(), glm::vec3(1.0f, 1.0f, 1.0f));
-	}
+	block_rot_x += 1;
+	modelTransformMatrix =
+		glm::translate(glm::mat4(), vec3(0.0f, 30.0f, -2000.0f))
+		* glm::rotate(mat4(), 0.001f*block_rot_x, vec3(0, 1, 0))
+		* glm::rotate(mat4(), 0.0f, vec3(1, 0, 0))
+		* glm::scale(glm::mat4(), glm::vec3(20.0f, 20.0f, 20.0f));
+
 	
 	glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
 	glDrawArrays(GL_TRIANGLES, 0, verticesB.size());
 
-	// load ring
-	glBindVertexArray(vaoID[2]);
-	glEnableVertexAttribArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, vboID[2]);
-	glVertexAttribPointer(
-		0,//attribute
-		3,//size
-		GL_FLOAT,//type
-		GL_FALSE,//normalize
-		0,//stride
-		(void*)0//array buffer offset
-	);
-	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, uvboID[2]);
-	glVertexAttribPointer(
-		1,//attribute
-		2,//size
-		GL_FLOAT,//type
-		GL_FALSE,//normalize
-		0,//stride
-		(void*)0//array buffer offset
-	);
-	glEnableVertexAttribArray(2);
-	glBindBuffer(GL_ARRAY_BUFFER, nboID[2]);
-	glVertexAttribPointer(
-		2,//attribute
-		3,//size
-		GL_FLOAT,//type
-		GL_FALSE,//normalize
-		0,//stride
-		(void*)0//array buffer offset
-	);
-	// shading
-	glActiveTexture(GL_TEXTURE0); 
-	glBindTexture(GL_TEXTURE_2D, texture[2]); //bind texture 
-	glUniform1i(TextureID, 0);
+	// load rings
+	//for (int i = 0; i < sizeof(verticesC)/sizeof(verticesC[0]); i++) {
+	//	glBindVertexArray(vaoID[2 + i]);
+	//	glEnableVertexAttribArray(0);
+	//	glBindBuffer(GL_ARRAY_BUFFER, vboID[2 + i]);
+	//	glVertexAttribPointer(
+	//		0,//attribute
+	//		3,//size
+	//		GL_FLOAT,//type
+	//		GL_FALSE,//normalize
+	//		0,//stride
+	//		(void*)0//array buffer offset
+	//	);
+	//	glEnableVertexAttribArray(1);
+	//	glBindBuffer(GL_ARRAY_BUFFER, uvboID[2 + i]);
+	//	glVertexAttribPointer(
+	//		1,//attribute
+	//		2,//size
+	//		GL_FLOAT,//type
+	//		GL_FALSE,//normalize
+	//		0,//stride
+	//		(void*)0//array buffer offset
+	//	);
+	//	glEnableVertexAttribArray(2);
+	//	glBindBuffer(GL_ARRAY_BUFFER, nboID[2 + i]);
+	//	glVertexAttribPointer(
+	//		2,//attribute
+	//		3,//size
+	//		GL_FLOAT,//type
+	//		GL_FALSE,//normalize
+	//		0,//stride
+	//		(void*)0//array buffer offset
+	//	);
+	//	// shading
+	//	glActiveTexture(GL_TEXTURE0);
+	//	glBindTexture(GL_TEXTURE_2D, texture[2]); //bind texture 
+	//	glUniform1i(TextureID, 0);
 
-	// transform
-	modelTransformMatrix = glm::mat4(1.0f);
-	modelTransformMatrix =
-		glm::translate(glm::mat4(), vec3(0.0f, 0.0f, 0.0f))
-		* glm::rotate(mat4(), 0.0f, vec3(0, 1, 0))
-		* glm::rotate(mat4(), 0.0f, vec3(1, 0, 0))
-		* glm::scale(glm::mat4(), glm::vec3(1.0f, 1.0f, 1.0f));
-	glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
-	glDrawArrays(GL_TRIANGLES, 0, verticesC.size());
+	//	// transform
+	//	float ring_rot = M_PI/2.0f;
+	//	modelTransformMatrix = glm::mat4(1.0f);
+	//	modelTransformMatrix =
+	//		glm::translate(glm::mat4(), vec3(0.0f, 30.0f, -i*150.0f-100.0f))
+	//		* glm::rotate(mat4(), block_rot_x*0.01f, vec3(0, 1, 0))
+	//		* glm::rotate(mat4(), ring_rot*1.0f, vec3(1, 0, 0))
+	//		* glm::rotate(mat4(), ring_rot*1.0f, vec3(0, 0, 1))
+	//		* glm::scale(glm::mat4(), glm::vec3(0.3f, 0.3f, 0.3f));
+	//	glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
+	//	glDrawArrays(GL_TRIANGLES, 0, verticesC[2 + i].size());
+	//}
 
+	// load wonderstar 
+	//glBindVertexArray(vaoID[wonderstarID]);
+	//glEnableVertexAttribArray(0);
+	//glBindBuffer(GL_ARRAY_BUFFER, vboID[wonderstarID]);
+	//glVertexAttribPointer(
+	//	0,//attribute
+	//	3,//size
+	//	GL_FLOAT,//type
+	//	GL_FALSE,//normalize
+	//	0,//stride
+	//	(void*)0//array buffer offset
+	//);
+	//glEnableVertexAttribArray(1);
+	//glBindBuffer(GL_ARRAY_BUFFER, uvboID[wonderstarID]);
+	//glVertexAttribPointer(
+	//	1,//attribute
+	//	2,//size
+	//	GL_FLOAT,//type
+	//	GL_FALSE,//normalize
+	//	0,//stride
+	//	(void*)0//array buffer offset
+	//);
+	//glEnableVertexAttribArray(2);
+	//glBindBuffer(GL_ARRAY_BUFFER, nboID[wonderstarID]);
+	//glVertexAttribPointer(
+	//	2,//attribute
+	//	3,//size
+	//	GL_FLOAT,//type
+	//	GL_FALSE,//normalize
+	//	0,//stride
+	//	(void*)0//array buffer offset
+	//);
+	//// shading
+	//glActiveTexture(GL_TEXTURE0);
+	//glBindTexture(GL_TEXTURE_2D, texture[3]); //bind texture 
+	//glUniform1i(TextureID, 0);
+	//// transform
+	//block_rot_x += 1;
+	//modelTransformMatrix =
+	//	glm::translate(glm::mat4(), vec3(-10.0f, 30.0f, -1000.0f))
+	//	* glm::rotate(mat4(), 0.001f*block_rot_x, vec3(0, 1, 0))
+	//	* glm::rotate(mat4(), 0.0f, vec3(1, 0, 0))
+	//	* glm::scale(glm::mat4(), glm::vec3(20.0f, 20.0f, 20.0f));
+	//glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
+	//glDrawArrays(GL_TRIANGLES, 0, verticesB.size());
 
 
 
@@ -860,6 +941,8 @@ int main(int argc, char *argv[])
 	glutSpecialFunc(move);
 	glutPassiveMotionFunc(PassiveMouse);
 	glutMouseWheelFunc(mousewheel);
+	
+	
 	glutMainLoop();
 
 	return 0;
