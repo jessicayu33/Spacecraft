@@ -400,39 +400,49 @@ void PassiveMouse(int xpos, int ypos)
 {
 	//TODO: Use Mouse to do interactive events and animation
 
-	//if (firstMouse)
-	//{
-	//	lastX = xpos;
-	//	lastY = ypos;
-	//	firstMouse = false;
-	//}
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
 
-	//float xoffset = -xpos + lastX;
-	//float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-	//lastX = xpos;
-	//lastY = ypos;
+	float xoffset = -xpos + lastX;
+	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
-	//float sensitivity = 0.1f; // change this value to your liking
-	//xoffset *= sensitivity;
-	//yoffset *= sensitivity;
 
-	//yaw += xoffset;
-	//pitch += yoffset;
 
-	//// make sure that when pitch is out of bounds, screen doesn't get flipped
-	//if (pitch > 89.0f)
-	//	pitch = 89.0f;
-	//if (pitch < -89.0f)
-	//	pitch = -89.0f;
+	float sensitivity = 0.1f; // change this value to your liking
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
 
-	//glm::vec3 front;
-	//front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	////front.y = sin(glm::radians(pitch));
-	//front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	////car_rot_y =-glm::radians(yaw)+M_PI/2;
-	//cameraFront = glm::normalize(front);
-	//std::cout<< cameraFront.x <<cameraFront.z<<"\n";
+	yaw += xoffset;
+	pitch += yoffset;
 
+	// make sure that when pitch is out of bounds, screen doesn't get flipped
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+
+	glm::vec3 front;
+	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	//front.y = sin(glm::radians(pitch));
+	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	//car_rot_y =-glm::radians(yaw)+M_PI/2;
+	cameraFront = glm::normalize(front);
+	std::cout<< cameraFront.x <<cameraFront.z<<"\n";
+	//ok la
+	if (xpos < lastX) {
+		car_rot_y -= 0.01f;
+	}
+	if (xpos > lastX) {
+		car_rot_y += 0.01f;
+	}
+	lastX = (float)xpos;
+
+	lastX = xpos;
+	lastY = ypos;
 	//tutorial
 	//cout << "mouse " << xpos<<'\n';
 	//if (xpos < oldx) {
@@ -447,13 +457,13 @@ void PassiveMouse(int xpos, int ypos)
 	//printf("rotate %f", viewRotateDegree[1]);
 
 	//ok la
-	if (xpos < lastX) {
-		car_rot_y -= 0.03f;
-	}
-	if (xpos > lastX) {
-		car_rot_y += 0.03f;
-	}
-	lastX = (float)xpos;
+	//if (xpos < lastX) {
+	//	car_rot_y -= 0.03f;
+	//}
+	//if (xpos > lastX) {
+	//	car_rot_y += 0.03f;
+	//}
+	//lastX = (float)xpos;
 }
 
 void mousewheel(int button, int dir, int x, int y) {
@@ -890,7 +900,7 @@ void paintGL(void)
 		//onlinecode
 	//vec3 movement = vec3(car_x,0.0f,car_z);
 	//vec3 movement = vec3(car_x, 0.0f, car_z) + carCam;
-	vec3 movement = vec3(0, 20.0f, -20.0f) + carCam;
+	vec3 movement = vec3(0, 20.0f, -40.0f) + carCam;
 	int ringGreenSignal[3] = { 0 };
 	countingdummy += 1;
 	if (countingdummy % 1000 == 0) {
@@ -907,7 +917,6 @@ void paintGL(void)
 				break;
 			}
 		}
-		
 	}
 	modelTransformMatrix =
 		glm::translate(glm::mat4(), movement)
