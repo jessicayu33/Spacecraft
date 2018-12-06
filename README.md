@@ -27,3 +27,14 @@
 	- commented code loading others since every launching for test cost time
 - lighting
 	- temporarily disabled lighting since they caused the texture of earth mutated if scale the earth larger
+## 6/12
+- Objects
+	- load asteroid
+	- load all other objects
+- lighting
+	- set specular light to 0, is it ok?
+	- diffuse light is 1.0
+	- ambient is normal
+- events
+	- spacecraft crossing rings texture change
+	
