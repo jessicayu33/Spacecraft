@@ -20,6 +20,7 @@ using glm::vec3;
 using glm::vec4;
 using glm::mat4;
 
+int countingdummy = 0;
 # define M_PI 3.14159265358979323846
 float ninety = M_PI / 2.0;
 float angle = M_PI / 8.0;
@@ -734,7 +735,7 @@ void sendDataToOpenGL()
 	texture[2] = loadBMP_custom("texture/ringTexture.bmp");
 	texture[3] = loadBMP_custom("texture/WonderStarTexture.bmp"); 
 	texture[4] = loadBMP_custom("texture/RockTexture.bmp");
-
+	texture[5] = loadBMP_custom("texture/green.bmp"); 
 	
 
 }
@@ -890,6 +891,24 @@ void paintGL(void)
 	//vec3 movement = vec3(car_x,0.0f,car_z);
 	//vec3 movement = vec3(car_x, 0.0f, car_z) + carCam;
 	vec3 movement = vec3(0, 20.0f, -20.0f) + carCam;
+	int ringGreenSignal[3] = { 0 };
+	countingdummy += 1;
+	if (countingdummy % 1000 == 0) {
+		printf("SC loc %f %f %f\n", movement[0], movement[1], movement[2]);
+	}	
+	
+	if (movement[0]<=40.0f && movement[0] >=-40.0f) {
+		for (int i = 0; i < sizeof(verticesC) / sizeof(verticesC[0]); i++) {
+			if (movement[2] <= ringCoordinates[i][2]+100.0f && movement[2] >= ringCoordinates[i][2]-100.0f) {
+				ringGreenSignal[i] = 1;
+				//printf("ring %d is penetrated!\n", i);
+				glBindTexture(GL_TEXTURE_2D, texture[5]); //bind green texture 
+				glUniform1i(TextureID, 0);
+				break;
+			}
+		}
+		
+	}
 	modelTransformMatrix =
 		glm::translate(glm::mat4(), movement)
 		* glm::rotate(mat4(), car_rot_y, vec3(0, 1, 0))
@@ -989,6 +1008,15 @@ void paintGL(void)
 		float ring_rot = M_PI/2.0f;
 		modelTransformMatrix = glm::mat4(1.0f);
 		ringCoordinates[i] = vec3(0.0f, 60.0f, -i*500.0f - 1000.0f);
+		if (countingdummy % 1000 == 0) {
+			printf("ring %d loc %f %f %f\n", i,ringCoordinates[i][0], ringCoordinates[i][1], ringCoordinates[i][2]);
+		}
+		if (ringGreenSignal[i] == 1) {
+			glBindTexture(GL_TEXTURE_2D, texture[5]); //bind texture 
+			glUniform1i(TextureID, 0);
+		}
+
+
 		modelTransformMatrix =
 			glm::translate(glm::mat4(), ringCoordinates[i])
 			* glm::rotate(mat4(), block_rot_x*0.0005f, vec3(0, 1, 0))
