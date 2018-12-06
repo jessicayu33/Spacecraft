@@ -17,6 +17,7 @@ Student Name: Li Ho Yin
 
 using namespace std;
 using glm::vec3;
+using glm::vec4;
 using glm::mat4;
 
 # define M_PI 3.14159265358979323846
@@ -52,10 +53,15 @@ std::vector<glm::vec2> uvsD;
 std::vector<glm::vec3> normalsD;
 
 //obj Rock
+int rockID = wonderstarID + 1;
 std::vector<glm::vec3> verticesE;
 std::vector<glm::vec2> uvsE;
 std::vector<glm::vec3> normalsE;
+glm::mat4* modelMatrices;
+GLuint amount = 400;
+
 GLuint texture[10];
+vec3 ringCoordinates[3];
 //camera setting
 glm::vec3 cameraPos = glm::vec3(0.0f, 20.0f, 100.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -175,7 +181,7 @@ vec3 center = vec3(0.0f, 0.0f, -5.0f);
 glm::vec3 up = vec3(0.0f, +1.0f, 0.0f);
 
 GLfloat brightness_diffuse = 1.0f;
-GLfloat brightness_specular = 1.0f;
+GLfloat brightness_specular = 0.0f;
 int texID = 1;
 int current_texID = 1;
 
@@ -187,6 +193,9 @@ int ctrl = 0;
 float light_x,light_y,light_z = 0.0f;
 
 float lastposition = 0.0f;
+
+float camAngle = 0;
+float iX = 0, iY = -0.8, iZ = 0, lX = 0, lY = -0.8, lZ = -1, uX = 0, uY = 1, uZ = 0;
 
 void keyboard(unsigned char key, int x, int y)
 {
@@ -251,12 +260,33 @@ void keyboard(unsigned char key, int x, int y)
 		else
 			ctrl = 1;
 	}
-
-
+	float fraction = 1.5f;
+	switch (key) {
+	case 'a':
+		camAngle -= 0.1f;
+		lX = sin(camAngle);
+		lZ = -cos(camAngle);
+		break;
+	case 'd':
+		camAngle += 0.1f;
+		lX = sin(camAngle);
+		lZ = -cos(camAngle);
+		break;
+	case 'w':
+		iX += lX * fraction;
+		iZ += lZ * fraction;
+		break;
+	case 's':
+		iX -= lX * fraction;
+		iZ -= lZ * fraction;
+		break;
+	default:
+		break;
+	}
 }
 
 float car_x = 0;
-float car_z = -20;
+float car_z = 0;
 float car_rot_y = 0;
 float car_rot_z = M_PI;
 int direction = 1;
@@ -265,8 +295,18 @@ int current_direction = 1;
 int cam_z = 0;
 int cam_y = +20;
 int cam_x = 0;
+
+vec3 SCTranslation;
+vec4 SC_world_Front_Direction;
+vec4 SC_world_Right_Direction;
+vec3 SCInitialPos = vec3(0, 0, 0);
+glm::mat4 SC_Rot_M;
+vec4 SC_world_pos;
+vec3 SC_local_pos = vec3(0, +100.0f, -100.0f);
+vec3 SC_local_front = vec3(0, 0, -1);
+vec3 SC_local_right = vec3(1, 0, 0);
+vec4 Camera_world_position = vec4(0, 0, 0,1.0f);
 // direction
-// 1 left 2 up 3 right 4 down
 void move(int key, int x, int y)
 {
 	//TODO: Use arrow keys to do interactive events and animation
@@ -275,6 +315,8 @@ void move(int key, int x, int y)
 	float cameraSpeed = 200.0f*0.1f;
 	if (key == GLUT_KEY_DOWN) {
 		cameraPos -= cameraSpeed * cameraFront;
+		//SCTranslation[0] = SCTranslation[0] - 15*SC_world_Front_Direction[0];
+		//SCTranslation[2] = SCTranslation[2] - 15*SC_world_Front_Direction[2];
 		//switch (direction) {
 		//case 1: 
 		//	cam_x-= 1; 
@@ -297,6 +339,8 @@ void move(int key, int x, int y)
 	}
 	if (key == GLUT_KEY_UP) {
 		cameraPos += cameraSpeed * cameraFront;
+		//SCTranslation[0] = SCTranslation[0] + 15*SC_world_Front_Direction[0];
+		//SCTranslation[2] = SCTranslation[2] + 15*SC_world_Front_Direction[2];
 
 		//switch (direction) {
 		//case 1: 
@@ -320,7 +364,8 @@ void move(int key, int x, int y)
 	}
 	if (key == GLUT_KEY_LEFT) {
 		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-
+		//SCTranslation[0] = SCTranslation[0] - 15*SC_world_Right_Direction[0];
+		//SCTranslation[2] = SCTranslation[2] - 15*SC_world_Right_Direction[2];
 		//car_rot_y += angle;
 		//if (direction == 1) {
 		//	direction = 4;
@@ -331,6 +376,8 @@ void move(int key, int x, int y)
 	}
 	if (key == GLUT_KEY_RIGHT) {
 		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		//SCTranslation[0] = SCTranslation[0] + 15*SC_world_Right_Direction[0];
+		//SCTranslation[2] = SCTranslation[2] + 15*SC_world_Right_Direction[2];
 		//car_rot_y -= angle;
 		//if (direction == 4) {
 		//	direction = 1;
@@ -339,52 +386,111 @@ void move(int key, int x, int y)
 		//	direction--;
 		//printf("rot: %d\n", direction);
 	}
-
+	//printf("SC loc %f %f %f\n", SCTranslation[0], SCTranslation[1], SCTranslation[2]);
+	//vec3 jojo = glm::vec3(SCInitialPos[0] + SCTranslation[0], SCInitialPos[1] + SCTranslation[1], SCInitialPos[2] + SCTranslation[2]);
+	//printf("tranlation  %f %f %f\n", jojo[0], jojo[1], jojo[2]);
+	//vec4 HAHA = glm::normalize(SC_world_Front_Direction);
+	//printf("SCWR %f %f %f\n", SC_world_Right_Direction[0], SC_world_Right_Direction[1], SC_world_Right_Direction[2]);
+	//printf("SCWF %f %f %f\n", HAHA[0], HAHA[1], HAHA[2]);
 }
+int oldx = 400;
+vec3 viewRotateDegree = vec3(0,0,0);
 void PassiveMouse(int xpos, int ypos)
 {
 	//TODO: Use Mouse to do interactive events and animation
-	
-	//if (ctrl == 1) {
-	//	cam_x = x * 0.3 - 100;
-	//	cam_z = y * 0.3 - 100;
-	//	printf("mouse moved %d %d", x, y);
+
+	//if (firstMouse)
+	//{
+	//	lastX = xpos;
+	//	lastY = ypos;
+	//	firstMouse = false;
 	//}
-	if (firstMouse)
-	{
-		lastX = xpos;
-		lastY = ypos;
-		firstMouse = false;
+
+	//float xoffset = -xpos + lastX;
+	//float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+	//lastX = xpos;
+	//lastY = ypos;
+
+	//float sensitivity = 0.1f; // change this value to your liking
+	//xoffset *= sensitivity;
+	//yoffset *= sensitivity;
+
+	//yaw += xoffset;
+	//pitch += yoffset;
+
+	//// make sure that when pitch is out of bounds, screen doesn't get flipped
+	//if (pitch > 89.0f)
+	//	pitch = 89.0f;
+	//if (pitch < -89.0f)
+	//	pitch = -89.0f;
+
+	//glm::vec3 front;
+	//front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	////front.y = sin(glm::radians(pitch));
+	//front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	////car_rot_y =-glm::radians(yaw)+M_PI/2;
+	//cameraFront = glm::normalize(front);
+	//std::cout<< cameraFront.x <<cameraFront.z<<"\n";
+
+	//tutorial
+	//cout << "mouse " << xpos<<'\n';
+	//if (xpos < oldx) {
+	//	viewRotateDegree[1] += 1.0f;
+	//	SC_Rot_M = glm::rotate(glm::mat4(1.0f), glm::radians(viewRotateDegree[1]), glm::vec3(0.0f, 1.0f, 0.0f));
+	//}
+	//if(xpos > oldx) {
+	//	viewRotateDegree[1] -= 1.0f;
+	//	SC_Rot_M = glm::rotate(glm::mat4(1.0f), glm::radians(viewRotateDegree[1]), glm::vec3(0.0f, 1.0f, 0.0f));
+	//}
+	//oldx = xpos;
+	//printf("rotate %f", viewRotateDegree[1]);
+
+	//ok la
+	if (xpos < lastX) {
+		car_rot_y -= 0.03f;
 	}
-
-	float xoffset = -xpos + lastX;
-	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-	lastX = xpos;
-	lastY = ypos;
-
-	float sensitivity = 0.1f; // change this value to your liking
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	yaw += xoffset;
-	pitch += yoffset;
-
-	// make sure that when pitch is out of bounds, screen doesn't get flipped
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	if (pitch < -89.0f)
-		pitch = -89.0f;
-
-	glm::vec3 front;
-	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	//front.y = sin(glm::radians(pitch));
-	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	car_rot_y =-glm::radians(yaw)+M_PI/2;
-	cameraFront = glm::normalize(front);
+	if (xpos > lastX) {
+		car_rot_y += 0.03f;
+	}
+	lastX = (float)xpos;
 }
 
 void mousewheel(int button, int dir, int x, int y) {
 
+}
+void CreateRand_ModelM() {
+	modelMatrices = new glm::mat4[amount];
+	// initialize random seed
+	srand(glutGet(GLUT_ELAPSED_TIME));
+	GLfloat radius = 80.0f;
+	GLfloat offset = 8.5f;
+	GLfloat displacement;
+	for (GLuint i = 0; i < amount; i++) {
+		glm::mat4 model;
+		// 1. Translation: randomly displace along circle with radius 'radius' in range [-offset, offset]
+		GLfloat angle = (GLfloat)i / (GLfloat)amount * 360.0f;
+		// x
+		displacement = (rand() % (GLint)(2 * offset * 200)) / 100.0f - offset;
+		GLfloat x = sin(angle) * radius + displacement;
+		// y
+		displacement = (rand() % (GLint)(2 * offset * 200)) / 100.0f - offset;
+		GLfloat y = displacement * 0.4f + 1;
+		// x
+		displacement = (rand() % (GLint)(2 * offset * 200)) / 100.0f - offset;
+		GLfloat z = cos(angle) * radius + displacement;
+		model = glm::translate(model, glm::vec3(x, y, z));
+
+		// 2. Scale: scale b/w 0.05 & 0.25f
+		GLfloat scale = (rand() % 10) / 10.0f + 0.05;
+		model = glm::scale(model, glm::vec3(scale));
+
+		// 3. Rotation: add random rotation around a (semi)randomly picked potation axis vector
+		GLfloat rotAngle = (rand() % 360);
+		model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+		// 4. Add to list of matrices
+		modelMatrices[i] = model;
+	}
 }
 bool loadOBJ(
 	const char * path,
@@ -551,7 +657,6 @@ void sendDataToOpenGL()
 	glGenBuffers(10, uvboID);
 	glGenBuffers(10, nboID);
 
-	//OBJ A
 	// load obj
 	loadOBJ("spaceCraft.obj", verticesA, uvsA, normalsA);
 	glBindVertexArray(vaoID[0]);
@@ -565,7 +670,6 @@ void sendDataToOpenGL()
 	glBindBuffer(GL_ARRAY_BUFFER, nboID[0]);
 	glBufferData(GL_ARRAY_BUFFER, normalsA.size() * sizeof(glm::vec3), &normalsA[0], GL_STATIC_DRAW);
 
-	//OBJ B
 	// load obj
 	loadOBJ("planet.obj", verticesB, uvsB, normalsB);
 	glBindVertexArray(vaoID[1]);
@@ -579,27 +683,25 @@ void sendDataToOpenGL()
 	glBindBuffer(GL_ARRAY_BUFFER, nboID[1]);
 	glBufferData(GL_ARRAY_BUFFER, normalsB.size() * sizeof(glm::vec3), &normalsB[0], GL_STATIC_DRAW);
 
-	//OBJ C
 	// load rings
-	//for (int i = 0; i < sizeof(verticesC)/sizeof(verticesC[0]); i++) {
-	//	std::cout << i <<" ring\n";
-	//	loadOBJ("ring.obj", verticesC[i], uvsC[i], normalsC[i]);
-	//	glBindVertexArray(vaoID[2+i]);
+	for (int i = 0; i < sizeof(verticesC) / sizeof(verticesC[0]); i++) {
+		std::cout << 2+i <<" ringID\n";
+		loadOBJ("ring.obj", verticesC[i], uvsC[i], normalsC[i]);
+		glBindVertexArray(vaoID[2+i]);
 
-	//	glBindBuffer(GL_ARRAY_BUFFER, vboID[2 + i]);
-	//	glBufferData(GL_ARRAY_BUFFER, verticesC[i].size() * sizeof(glm::vec3), &verticesC[i][0], GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, vboID[2 + i]);
+		glBufferData(GL_ARRAY_BUFFER, verticesC[i].size() * sizeof(glm::vec3), &verticesC[i][0], GL_STATIC_DRAW);
 
-	//	glBindBuffer(GL_ARRAY_BUFFER, uvboID[2 + i]);
-	//	glBufferData(GL_ARRAY_BUFFER, uvsC[i].size() * sizeof(glm::vec2), &uvsC[i][0], GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, uvboID[2 + i]);
+		glBufferData(GL_ARRAY_BUFFER, uvsC[i].size() * sizeof(glm::vec2), &uvsC[i][0], GL_STATIC_DRAW);
 
-	//	glBindBuffer(GL_ARRAY_BUFFER, nboID[2 + i]);
-	//	glBufferData(GL_ARRAY_BUFFER, normalsC[i].size() * sizeof(glm::vec3), &normalsC[i][0], GL_STATIC_DRAW);
-	//}
+		glBindBuffer(GL_ARRAY_BUFFER, nboID[2 + i]);
+		glBufferData(GL_ARRAY_BUFFER, normalsC[i].size() * sizeof(glm::vec3), &normalsC[i][0], GL_STATIC_DRAW);
+	}
 
-	//OBJ D
 	// load obj
 	loadOBJ("planet.obj", verticesD, uvsD, normalsD);
-	
+	cout <<"wonderstar ID "<< wonderstarID << "\n";
 	glBindVertexArray(vaoID[wonderstarID]);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vboID[wonderstarID]);
@@ -612,18 +714,19 @@ void sendDataToOpenGL()
 	glBufferData(GL_ARRAY_BUFFER, normalsD.size() * sizeof(glm::vec3), &normalsD[0], GL_STATIC_DRAW);
 
 	//OBJ E
-	// load obj
-	//loadOBJ("rock.obj", verticesE, uvsE, normalsE);
-	//glBindVertexArray(vaoID[4]);
+	// load rocks
+	loadOBJ("rock.obj", verticesE, uvsE, normalsE);
+	glBindVertexArray(vaoID[rockID]);
 
-	//glBindBuffer(GL_ARRAY_BUFFER, vboID[4]);
-	//glBufferData(GL_ARRAY_BUFFER, verticesE.size() * sizeof(glm::vec3), &verticesE[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vboID[rockID]);
+	glBufferData(GL_ARRAY_BUFFER, verticesE.size() * sizeof(glm::vec3), &verticesE[0], GL_STATIC_DRAW);
 
-	//glBindBuffer(GL_ARRAY_BUFFER, uvboID[4]);
-	//glBufferData(GL_ARRAY_BUFFER, uvsE.size() * sizeof(glm::vec2), &uvsE[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, uvboID[rockID]);
+	glBufferData(GL_ARRAY_BUFFER, uvsE.size() * sizeof(glm::vec2), &uvsE[0], GL_STATIC_DRAW);
 
-	//glBindBuffer(GL_ARRAY_BUFFER, nboID[4]);
-	//glBufferData(GL_ARRAY_BUFFER, normalsE.size() * sizeof(glm::vec3), &normalsE[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, nboID[rockID]);
+	glBufferData(GL_ARRAY_BUFFER, normalsE.size() * sizeof(glm::vec3), &normalsE[0], GL_STATIC_DRAW);
+
 
 
 	texture[0] = loadBMP_custom("texture/spacecraftTexture.bmp");
@@ -644,6 +747,9 @@ void paintGL(void)
 	glViewport(0, 0, 800, 800);
 
 	// camera library
+
+	
+	//cameraPos = vec3(0.0f, 40.0f, 0);
 	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 	GLint viewMatrixUniformLocation = glGetUniformLocation(programID, "viewMatrix");
 	glUniformMatrix4fv(viewMatrixUniformLocation, 1, GL_FALSE, &view[0][0]);
@@ -655,9 +761,10 @@ void paintGL(void)
 	//GLint viewMatrixUniformLocation = glGetUniformLocation(programID, "viewMatrix");
 	//glUniformMatrix4fv(viewMatrixUniformLocation, 1, GL_FALSE, &viewMatrix[0][0]);
 	//projection setting
-	mat4 projectionMatrix = glm::perspective(100.0f, 1.0f, 1.0f, 2000.0f);
+	mat4 projectionMatrix = glm::perspective(100.0f, 1.0f, 1.0f, 2500.0f);
 	GLint projectionMatrixUniformLocation = glGetUniformLocation(programID, "projectionMatrix");
 	glUniformMatrix4fv(projectionMatrixUniformLocation, 1, GL_FALSE, &projectionMatrix[0][0]);
+	//vec3 carCam = cameraPos;
 	vec3 carCam = cameraPos + vec3(0.0f, 30.0f, -150.0f);
 
 	//camera
@@ -682,21 +789,21 @@ void paintGL(void)
 	glUniform3fv(ambientLightUniformlocation, 1, &ambientLight[0]);
 
 	//specular
-	//GLint eyePositionUniformLocation = glGetUniformLocation(programID, "eyePositionWorld");
+	GLint eyePositionUniformLocation = glGetUniformLocation(programID, "eyePositionWorld");
 	//vec3 eyePosition(0.0f, 0.0f, 0.0f);
-	//vec3 eyePosition = cameraPostition;
-	//glUniform3fv(eyePositionUniformLocation, 1, &eyePosition[0]);
-	//GLint lightPositionUniformLocation = glGetUniformLocation(programID, "lightPositionWorld");
-	// vec3 lightPosition(5.0f, 15.0f, -10.0f);
-	//vec3 lightPosition(light_x, 15.0f,light_z);
-	//glUniform3fv(lightPositionUniformLocation, 1, &lightPosition[0]);
+	vec3 eyePosition = cameraPos;
+	glUniform3fv(eyePositionUniformLocation, 1, &eyePosition[0]);
+	GLint lightPositionUniformLocation = glGetUniformLocation(programID, "lightPositionWorld");
+	//vec3 lightPosition(5.0f, 15.0f, -10.0f);
+	vec3 lightPosition(light_x, 50.0f,light_z);
+	glUniform3fv(lightPositionUniformLocation, 1, &lightPosition[0]);
 	
 	//user control 
-	//GLint brightness_diffuse_location = glGetUniformLocation(programID, "brightness_diffuse");
-	//glUniform1f(brightness_diffuse_location, brightness_diffuse);
+	GLint brightness_diffuse_location = glGetUniformLocation(programID, "brightness_diffuse");
+	glUniform1f(brightness_diffuse_location, brightness_diffuse);
 
-	//GLint brightness_specular_location = glGetUniformLocation(programID, "brightness_specular");
-	//glUniform1f(brightness_specular_location, brightness_specular);
+	GLint brightness_specular_location = glGetUniformLocation(programID, "brightness_specular");
+	glUniform1f(brightness_specular_location, brightness_specular);
 
 	//if (texID != current_texID) {
 	//	switch (texID) {
@@ -752,15 +859,42 @@ void paintGL(void)
 	glUniform1i(TextureID, 0);
 	// transform
 	modelTransformMatrix = glm::mat4(1.0f);
-	//vec3 movement = vec3(car_x,0.0f,car_z);
-	vec3 movement = vec3(car_x, 0.0f, car_z) + carCam;
-	//vec3 movement = vec3(0, 0.0f, 0) + carCam;
+
 	//translate
+		//tutorial
+	//float  scale = 0.001;
+	//glm::mat4 SC_scale_M = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+	//glm::mat4 SC_trans_M = glm::translate
+	//(
+	//	glm::mat4(1.0f),
+	//	glm::vec3(SCInitialPos[0] + SCTranslation[0], SCInitialPos[1] + SCTranslation[1], SCInitialPos[2] + SCTranslation[2])
+	//);
+	//glm::mat4 Model_matrix = SC_trans_M*SC_Rot_M*SC_scale_M;
+	//SC_world_pos = Model_matrix * glm::vec4(SC_local_pos, 1.0f);
+	//SC_world_Front_Direction = Model_matrix * vec4(SC_local_front, 1.0f);
+	//SC_world_Right_Direction = Model_matrix * vec4(SC_local_right, 1.0f);
+	//SC_world_Front_Direction = glm::normalize(SC_world_Front_Direction);
+	//SC_world_Right_Direction = glm::normalize(SC_world_Right_Direction);
+	
+	//cameraPos = vec3(30.0f, 30.0f, 0);
+
+	//Camera_world_position = Model_matrix * glm::vec4(cameraPos, 1.0f);
+
+	//glm::mat4 view = glm::lookAt(vec3(Camera_world_position), vec3(Camera_world_position) + vec3(0,0,-100), vec3(0, 1.0f, 0));
+	//glm::mat4 view = glm::lookAt(vec3(Camera_world_position), vec3(SC_world_pos), vec3(0,1.0f,0));
+	//GLint viewMatrixUniformLocation = glGetUniformLocation(programID, "viewMatrix");
+	//glUniformMatrix4fv(viewMatrixUniformLocation, 1, GL_FALSE, &view[0][0]);
+	//glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &Model_matrix[0][0]);
+	//glDrawArrays(GL_TRIANGLES, 0, verticesA.size());
+		//onlinecode
+	//vec3 movement = vec3(car_x,0.0f,car_z);
+	//vec3 movement = vec3(car_x, 0.0f, car_z) + carCam;
+	vec3 movement = vec3(0, 20.0f, -20.0f) + carCam;
 	modelTransformMatrix =
 		glm::translate(glm::mat4(), movement)
-		* glm::rotate(mat4(), 0.0f, vec3(0, 1, 0))
+		* glm::rotate(mat4(), car_rot_y, vec3(0, 1, 0))
 		* glm::rotate(mat4(), car_rot_z, vec3(1, 0, 0))
-		* glm::scale(glm::mat4(), glm::vec3(0.03f, 0.03f, 0.03f));
+		* glm::scale(glm::mat4(), glm::vec3(0.05f, 0.05f, 0.05f));
 		//*glm::scale(glm::mat4(), glm::vec3(1.0f, 1.0f, 1.0f));
 	glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
 	glDrawArrays(GL_TRIANGLES, 0, verticesA.size());
@@ -804,7 +938,7 @@ void paintGL(void)
 	// transform
 	block_rot_x += 1;
 	modelTransformMatrix =
-		glm::translate(glm::mat4(), vec3(0.0f, 30.0f, -2000.0f))
+		glm::translate(glm::mat4(), vec3(0.0f, 30.0f, -2500.0f))
 		* glm::rotate(mat4(), 0.001f*block_rot_x, vec3(0, 1, 0))
 		* glm::rotate(mat4(), 0.0f, vec3(1, 0, 0))
 		* glm::scale(glm::mat4(), glm::vec3(20.0f, 20.0f, 20.0f));
@@ -814,104 +948,149 @@ void paintGL(void)
 	glDrawArrays(GL_TRIANGLES, 0, verticesB.size());
 
 	// load rings
-	//for (int i = 0; i < sizeof(verticesC)/sizeof(verticesC[0]); i++) {
-	//	glBindVertexArray(vaoID[2 + i]);
-	//	glEnableVertexAttribArray(0);
-	//	glBindBuffer(GL_ARRAY_BUFFER, vboID[2 + i]);
-	//	glVertexAttribPointer(
-	//		0,//attribute
-	//		3,//size
-	//		GL_FLOAT,//type
-	//		GL_FALSE,//normalize
-	//		0,//stride
-	//		(void*)0//array buffer offset
-	//	);
-	//	glEnableVertexAttribArray(1);
-	//	glBindBuffer(GL_ARRAY_BUFFER, uvboID[2 + i]);
-	//	glVertexAttribPointer(
-	//		1,//attribute
-	//		2,//size
-	//		GL_FLOAT,//type
-	//		GL_FALSE,//normalize
-	//		0,//stride
-	//		(void*)0//array buffer offset
-	//	);
-	//	glEnableVertexAttribArray(2);
-	//	glBindBuffer(GL_ARRAY_BUFFER, nboID[2 + i]);
-	//	glVertexAttribPointer(
-	//		2,//attribute
-	//		3,//size
-	//		GL_FLOAT,//type
-	//		GL_FALSE,//normalize
-	//		0,//stride
-	//		(void*)0//array buffer offset
-	//	);
-	//	// shading
-	//	glActiveTexture(GL_TEXTURE0);
-	//	glBindTexture(GL_TEXTURE_2D, texture[2]); //bind texture 
-	//	glUniform1i(TextureID, 0);
-
-	//	// transform
-	//	float ring_rot = M_PI/2.0f;
-	//	modelTransformMatrix = glm::mat4(1.0f);
-	//	modelTransformMatrix =
-	//		glm::translate(glm::mat4(), vec3(0.0f, 30.0f, -i*150.0f-100.0f))
-	//		* glm::rotate(mat4(), block_rot_x*0.01f, vec3(0, 1, 0))
-	//		* glm::rotate(mat4(), ring_rot*1.0f, vec3(1, 0, 0))
-	//		* glm::rotate(mat4(), ring_rot*1.0f, vec3(0, 0, 1))
-	//		* glm::scale(glm::mat4(), glm::vec3(0.3f, 0.3f, 0.3f));
-	//	glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
-	//	glDrawArrays(GL_TRIANGLES, 0, verticesC[2 + i].size());
-	//}
+	for (int i = 0; i < sizeof(verticesC)/sizeof(verticesC[0]); i++) {
+		glBindVertexArray(vaoID[2 + i]);
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, vboID[2 + i]);
+		glVertexAttribPointer(
+			0,//attribute
+			3,//size
+			GL_FLOAT,//type
+			GL_FALSE,//normalize
+			0,//stride
+			(void*)0//array buffer offset
+		);
+		glEnableVertexAttribArray(1);
+		glBindBuffer(GL_ARRAY_BUFFER, uvboID[2 + i]);
+		glVertexAttribPointer(
+			1,//attribute
+			2,//size
+			GL_FLOAT,//type
+			GL_FALSE,//normalize
+			0,//stride
+			(void*)0//array buffer offset
+		);
+		glEnableVertexAttribArray(2);
+		glBindBuffer(GL_ARRAY_BUFFER, nboID[2 + i]);
+		glVertexAttribPointer(
+			2,//attribute
+			3,//size
+			GL_FLOAT,//type
+			GL_FALSE,//normalize
+			0,//stride
+			(void*)0//array buffer offset
+		);
+		// shading
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture[2]); //bind texture 
+		glUniform1i(TextureID, 0);
+	
+		// transform
+		float ring_rot = M_PI/2.0f;
+		modelTransformMatrix = glm::mat4(1.0f);
+		ringCoordinates[i] = vec3(0.0f, 60.0f, -i*500.0f - 1000.0f);
+		modelTransformMatrix =
+			glm::translate(glm::mat4(), ringCoordinates[i])
+			* glm::rotate(mat4(), block_rot_x*0.0005f, vec3(0, 1, 0))
+			* glm::rotate(mat4(), ring_rot*1.0f, vec3(1, 0, 0))
+			* glm::scale(glm::mat4(), glm::vec3(0.8f, 0.8f, 0.8f));
+		glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, verticesC[i].size());
+	}
 
 	// load wonderstar 
-	//glBindVertexArray(vaoID[wonderstarID]);
-	//glEnableVertexAttribArray(0);
-	//glBindBuffer(GL_ARRAY_BUFFER, vboID[wonderstarID]);
-	//glVertexAttribPointer(
-	//	0,//attribute
-	//	3,//size
-	//	GL_FLOAT,//type
-	//	GL_FALSE,//normalize
-	//	0,//stride
-	//	(void*)0//array buffer offset
-	//);
-	//glEnableVertexAttribArray(1);
-	//glBindBuffer(GL_ARRAY_BUFFER, uvboID[wonderstarID]);
-	//glVertexAttribPointer(
-	//	1,//attribute
-	//	2,//size
-	//	GL_FLOAT,//type
-	//	GL_FALSE,//normalize
-	//	0,//stride
-	//	(void*)0//array buffer offset
-	//);
-	//glEnableVertexAttribArray(2);
-	//glBindBuffer(GL_ARRAY_BUFFER, nboID[wonderstarID]);
-	//glVertexAttribPointer(
-	//	2,//attribute
-	//	3,//size
-	//	GL_FLOAT,//type
-	//	GL_FALSE,//normalize
-	//	0,//stride
-	//	(void*)0//array buffer offset
-	//);
-	//// shading
-	//glActiveTexture(GL_TEXTURE0);
-	//glBindTexture(GL_TEXTURE_2D, texture[3]); //bind texture 
-	//glUniform1i(TextureID, 0);
-	//// transform
-	//block_rot_x += 1;
-	//modelTransformMatrix =
-	//	glm::translate(glm::mat4(), vec3(-10.0f, 30.0f, -1000.0f))
-	//	* glm::rotate(mat4(), 0.001f*block_rot_x, vec3(0, 1, 0))
-	//	* glm::rotate(mat4(), 0.0f, vec3(1, 0, 0))
-	//	* glm::scale(glm::mat4(), glm::vec3(20.0f, 20.0f, 20.0f));
-	//glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
-	//glDrawArrays(GL_TRIANGLES, 0, verticesB.size());
+	glBindVertexArray(vaoID[wonderstarID]);
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, vboID[wonderstarID]);
+	glVertexAttribPointer(
+		0,//attribute
+		3,//size
+		GL_FLOAT,//type
+		GL_FALSE,//normalize
+		0,//stride
+		(void*)0//array buffer offset
+	);
+	glEnableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, uvboID[wonderstarID]);
+	glVertexAttribPointer(
+		1,//attribute
+		2,//size
+		GL_FLOAT,//type
+		GL_FALSE,//normalize
+		0,//stride
+		(void*)0//array buffer offset
+	);
+	glEnableVertexAttribArray(2);
+	glBindBuffer(GL_ARRAY_BUFFER, nboID[wonderstarID]);
+	glVertexAttribPointer(
+		2,//attribute
+		3,//size
+		GL_FLOAT,//type
+		GL_FALSE,//normalize
+		0,//stride
+		(void*)0//array buffer offset
+	);
+	// shading
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture[3]); //bind texture 
+	glUniform1i(TextureID, 0);
+	// transform
+	block_rot_x += 1;
+	modelTransformMatrix =
+		glm::translate(glm::mat4(), vec3(-10.0f, 20.0f, -200.0f))
+		* glm::rotate(mat4(), 0.001f*block_rot_x, vec3(0, 1, 0))
+		* glm::rotate(mat4(), 0.0f, vec3(1, 0, 0))
+		* glm::scale(glm::mat4(), glm::vec3(20.0f, 20.0f, 20.0f));
+	glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
+	glDrawArrays(GL_TRIANGLES, 0, verticesD.size());
 
 
-
+	// asteroid cloud
+	for (GLuint i = 0; i < amount; i++) {
+		glBindVertexArray(vaoID[rockID]);
+		glEnableVertexAttribArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, vboID[rockID]);
+		glVertexAttribPointer(
+			0,//attribute
+			3,//size
+			GL_FLOAT,//type
+			GL_FALSE,//normalize
+			0,//stride
+			(void*)0//array buffer offset
+		);
+		glEnableVertexAttribArray(1);
+		glBindBuffer(GL_ARRAY_BUFFER, uvboID[rockID]);
+		glVertexAttribPointer(
+			1,//attribute
+			2,//size
+			GL_FLOAT,//type
+			GL_FALSE,//normalize
+			0,//stride
+			(void*)0//array buffer offset
+		);
+		glEnableVertexAttribArray(2);
+		glBindBuffer(GL_ARRAY_BUFFER, nboID[rockID]);
+		glVertexAttribPointer(
+			2,//attribute
+			3,//size
+			GL_FLOAT,//type
+			GL_FALSE,//normalize
+			0,//stride
+			(void*)0//array buffer offset
+		);
+		// shading
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture[4]); //bind texture 
+		glUniform1i(TextureID, 0);
+		// transform
+		modelTransformMatrix =
+			glm::translate(glm::mat4(), vec3(-10.0f, 30.0f, -200.0f))
+			* glm::rotate(mat4(), 0.005f*block_rot_x, vec3(0, 1, 0))
+			* glm::rotate(mat4(), 0.0f, vec3(1, 0, 0))
+			* modelMatrices[i];
+		glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
+		glDrawArrays(GL_TRIANGLES, 0, verticesE.size());
+	}
 
 	glFlush();
 	glutPostRedisplay();
@@ -941,7 +1120,7 @@ int main(int argc, char *argv[])
 	glutSpecialFunc(move);
 	glutPassiveMotionFunc(PassiveMouse);
 	glutMouseWheelFunc(mousewheel);
-	
+	CreateRand_ModelM();
 	
 	glutMainLoop();
 
