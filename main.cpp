@@ -88,8 +88,8 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 bool firstMouse = true;
 float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
 float pitch = 0.0f;
-float lastX = 800.0f / 2.0;
-float lastY = 600.0 / 2.0;
+float lastX = 800.0 / 2;
+float lastY = 800.0 / 2;
 float fov = 45.0f;
 
 // lighting colors
@@ -201,7 +201,7 @@ string readShaderCode(const char* fileName)
 	return std::string(
 		std::istreambuf_iterator<char>(meInput),
 		std::istreambuf_iterator<char>()
-	);
+		);
 }
 
 void installShaders()
@@ -401,7 +401,6 @@ void move(int key, int x, int y)
 // mouse interaction
 void PassiveMouse(int xpos, int ypos)
 {
-
 	if (firstMouse) {
 		lastX = xpos;
 		lastY = ypos;
@@ -411,7 +410,7 @@ void PassiveMouse(int xpos, int ypos)
 	float xoffset = -xpos + lastX;
 	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 
-	float sensitivity = 0.1f; // change this value to your liking
+	float sensitivity = 0.05f; // change this value to your liking
 	xoffset *= sensitivity;
 	yoffset *= sensitivity;
 
@@ -430,7 +429,8 @@ void PassiveMouse(int xpos, int ypos)
 	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 	//spacecraft_rot_y =-glm::radians(yaw)+M_PI/2;
 	cameraFront = glm::normalize(front);
-	std::cout<< cameraFront.x <<cameraFront.z<<"\n";
+	std::cout << cameraFront.x << cameraFront.z << "\n";
+
 	//ok la
 	if (xpos < lastX) {
 		spacecraft_rot_y -= 0.01f;
@@ -439,9 +439,6 @@ void PassiveMouse(int xpos, int ypos)
 		spacecraft_rot_y += 0.01f;
 	}
 	lastX = (float)xpos;
-
-	lastX = xpos;
-	lastY = ypos;
 
 	//tutorial
 	//cout << "mouse " << xpos<<'\n';
@@ -498,7 +495,7 @@ bool loadOBJ(
 	std::vector<glm::vec3> & out_vertices,
 	std::vector<glm::vec2> & out_uvs,
 	std::vector<glm::vec3> & out_normals
-) {
+	) {
 	printf("Loading OBJ file %s...\n", path);
 
 	std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
@@ -564,7 +561,7 @@ bool loadOBJ(
 	}
 
 	// For each vertex of each triangle
-	for (unsigned int i = 0; i<vertexIndices.size(); i++) {
+	for (unsigned int i = 0; i < vertexIndices.size(); i++) {
 
 		// Get the indices of its attributes
 		unsigned int vertexIndex = vertexIndices[i];
@@ -630,7 +627,7 @@ GLuint loadBMP_custom(const char * imagepath) {
 	glBindTexture(GL_TEXTURE_2D, textureID);
 	// give image to opgl
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
-	
+
 
 	delete[] data;
 
@@ -686,9 +683,9 @@ void sendDataToOpenGL()
 
 	// load rings
 	for (int i = 0; i < sizeof(verticesC) / sizeof(verticesC[0]); i++) {
-		std::cout << 2+i <<" ringID\n";
+		std::cout << 2 + i << " ringID\n";
 		loadOBJ("ring.obj", verticesC[i], uvsC[i], normalsC[i]);
-		glBindVertexArray(vaoID[2+i]);
+		glBindVertexArray(vaoID[2 + i]);
 
 		glBindBuffer(GL_ARRAY_BUFFER, vboID[2 + i]);
 		glBufferData(GL_ARRAY_BUFFER, verticesC[i].size() * sizeof(glm::vec3), &verticesC[i][0], GL_STATIC_DRAW);
@@ -702,7 +699,7 @@ void sendDataToOpenGL()
 
 	// load wonder star
 	loadOBJ("planet.obj", verticesD, uvsD, normalsD);
-	cout <<"wonderstar ID "<< wonderstarID << "\n";
+	cout << "wonderstar ID " << wonderstarID << "\n";
 	glBindVertexArray(vaoID[wonderstarID]);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vboID[wonderstarID]);
@@ -710,7 +707,7 @@ void sendDataToOpenGL()
 
 	glBindBuffer(GL_ARRAY_BUFFER, uvboID[wonderstarID]);
 	glBufferData(GL_ARRAY_BUFFER, uvsD.size() * sizeof(glm::vec2), &uvsD[0], GL_STATIC_DRAW);
-	
+
 	glBindBuffer(GL_ARRAY_BUFFER, nboID[wonderstarID]);
 	glBufferData(GL_ARRAY_BUFFER, normalsD.size() * sizeof(glm::vec3), &normalsD[0], GL_STATIC_DRAW);
 
@@ -731,9 +728,9 @@ void sendDataToOpenGL()
 	texture[0] = loadBMP_custom("texture/spacecraftTexture.bmp");
 	texture[1] = loadBMP_custom("texture/earthTexture.bmp");
 	texture[2] = loadBMP_custom("texture/ringTexture.bmp");
-	texture[3] = loadBMP_custom("texture/WonderStarTexture.bmp"); 
+	texture[3] = loadBMP_custom("texture/WonderStarTexture.bmp");
 	texture[4] = loadBMP_custom("texture/RockTexture.bmp");
-	texture[5] = loadBMP_custom("texture/green.bmp"); 
+	texture[5] = loadBMP_custom("texture/green.bmp");
 	texture[6] = loadBMP_custom("texture/earth_normal.bmp");
 }
 
@@ -750,7 +747,7 @@ void paintGL(void)
 	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 	GLint viewMatrixUniformLocation = glGetUniformLocation(programID, "viewMatrix");
 	glUniformMatrix4fv(viewMatrixUniformLocation, 1, GL_FALSE, &view[0][0]);
-	
+
 	////camera new
 	//glm::vec3 cameraSight = center = vec3(0, 0.0f, -10.0f);
 	//glm::vec3 cameraPostition = glm::vec3(cam_x, cam_y*1.0f, cam_z);
@@ -800,7 +797,7 @@ void paintGL(void)
 	GLint lightPositionUniformLocation2 = glGetUniformLocation(programID, "lightPositionWorld2");
 	vec3 lightPosition2(-300.0f, -300.0f, -200.0f);
 	glUniform3fv(lightPositionUniformLocation2, 1, &lightPosition2[0]);
-	
+
 	// control lighting
 	// diffuse brightness
 	GLint brightness_diffuse_location = glGetUniformLocation(programID, "brightness_diffuse");
@@ -835,7 +832,7 @@ void paintGL(void)
 		GL_FALSE,//normalize
 		0,//stride
 		(void*)0//array buffer offset
-	);
+		);
 	// bind uvbo
 	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, uvboID[0]);
@@ -846,7 +843,7 @@ void paintGL(void)
 		GL_FALSE,//normalize
 		0,//stride
 		(void*)0//array buffer offset
-	);
+		);
 	// bind nbo
 	glEnableVertexAttribArray(2);
 	glBindBuffer(GL_ARRAY_BUFFER, nboID[0]);
@@ -857,7 +854,7 @@ void paintGL(void)
 		GL_FALSE,//normalize
 		0,//stride
 		(void*)0//array buffer offset
-	);
+		);
 	// bind texture
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture[0]);
@@ -880,7 +877,7 @@ void paintGL(void)
 	//SC_world_Right_Direction = Model_matrix * vec4(SC_local_right, 1.0f);
 	//SC_world_Front_Direction = glm::normalize(SC_world_Front_Direction);
 	//SC_world_Right_Direction = glm::normalize(SC_world_Right_Direction);
-	
+
 	//cameraPos = vec3(30.0f, 30.0f, 0);
 
 	//Camera_world_position = Model_matrix * glm::vec4(cameraPos, 1.0f);
@@ -900,11 +897,11 @@ void paintGL(void)
 	countingdummy += 1;
 	if (countingdummy % 1000 == 0) {
 		printf("SC loc %f %f %f\n", movement[0], movement[1], movement[2]);
-	}	
-	
-	if (movement[0]<=40.0f && movement[0] >=-40.0f) {
+	}
+
+	if (movement[0] <= 40.0f && movement[0] >= -40.0f) {
 		for (int i = 0; i < sizeof(verticesC) / sizeof(verticesC[0]); i++) {
-			if (movement[2] <= ringCoordinates[i][2]+100.0f && movement[2] >= ringCoordinates[i][2]-100.0f) {
+			if (movement[2] <= ringCoordinates[i][2] + 100.0f && movement[2] >= ringCoordinates[i][2] - 100.0f) {
 				ringGreenSignal[i] = 1;
 				//printf("ring %d is penetrated!\n", i);
 				glBindTexture(GL_TEXTURE_2D, texture[5]); //bind green texture 
@@ -915,10 +912,10 @@ void paintGL(void)
 	}
 	modelTransformMatrix =
 		glm::translate(glm::mat4(), movement)
-		* glm::rotate(mat4(), spacecraft_rot_y, vec3(0, 1, 0))
+		//* glm::rotate(mat4(), spacecraft_rot_y, vec3(0, 1, 0))
 		* glm::rotate(mat4(), spacecraft_rot_z, vec3(1, 0, 0))
 		* glm::scale(glm::mat4(), glm::vec3(0.05f, 0.05f, 0.05f));
-		//*glm::scale(glm::mat4(), glm::vec3(1.0f, 1.0f, 1.0f));
+	//*glm::scale(glm::mat4(), glm::vec3(1.0f, 1.0f, 1.0f));
 	glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
 	glDrawArrays(GL_TRIANGLES, 0, verticesA.size());
 
@@ -934,7 +931,7 @@ void paintGL(void)
 		GL_FALSE,//normalize
 		0,//stride
 		(void*)0//array buffer offset
-	);
+		);
 	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, uvboID[1]);
 	glVertexAttribPointer(
@@ -944,7 +941,7 @@ void paintGL(void)
 		GL_FALSE,//normalize
 		0,//stride
 		(void*)0//array buffer offset
-	);
+		);
 	glEnableVertexAttribArray(2);
 	glBindBuffer(GL_ARRAY_BUFFER, nboID[1]);
 	glVertexAttribPointer(
@@ -954,7 +951,7 @@ void paintGL(void)
 		GL_FALSE,//normalize
 		0,//stride
 		(void*)0//array buffer offset
-	);
+		);
 	// bind texture
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture[1]);
@@ -971,7 +968,7 @@ void paintGL(void)
 	modelTransformMatrix =
 		glm::translate(glm::mat4(), vec3(0.0f, 30.0f, -2500.0f))
 		* glm::rotate(mat4(), 0.001f*block_rot_x, vec3(0, 1, 0))
-		* glm::rotate(mat4(), 0.0f, vec3(1, 0, 0))
+		* glm::rotate(mat4(), 2.35f, vec3(1, 0, 0))
 		* glm::scale(glm::mat4(), glm::vec3(20.0f, 20.0f, 20.0f));
 	glUniformMatrix4fv(modelTransformMatrixUniformLocation, 1, GL_FALSE, &modelTransformMatrix[0][0]);
 	glDrawArrays(GL_TRIANGLES, 0, verticesB.size());
@@ -980,7 +977,7 @@ void paintGL(void)
 
 
 	// draw rings
-	for (int i = 0; i < sizeof(verticesC)/sizeof(verticesC[0]); i++) {
+	for (int i = 0; i < sizeof(verticesC) / sizeof(verticesC[0]); i++) {
 		glBindVertexArray(vaoID[2 + i]);
 		glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, vboID[2 + i]);
@@ -991,7 +988,7 @@ void paintGL(void)
 			GL_FALSE,//normalize
 			0,//stride
 			(void*)0//array buffer offset
-		);
+			);
 		glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, uvboID[2 + i]);
 		glVertexAttribPointer(
@@ -1001,7 +998,7 @@ void paintGL(void)
 			GL_FALSE,//normalize
 			0,//stride
 			(void*)0//array buffer offset
-		);
+			);
 		glEnableVertexAttribArray(2);
 		glBindBuffer(GL_ARRAY_BUFFER, nboID[2 + i]);
 		glVertexAttribPointer(
@@ -1011,18 +1008,18 @@ void paintGL(void)
 			GL_FALSE,//normalize
 			0,//stride
 			(void*)0//array buffer offset
-		);
+			);
 		// bind texture
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture[2]);
 		glUniform1i(TextureID, 0);
-	
+
 		// transformation
-		float ring_rot = M_PI/2.0f;
+		float ring_rot = M_PI / 2.0f;
 		modelTransformMatrix = glm::mat4(1.0f);
 		ringCoordinates[i] = vec3(0.0f, 60.0f, -i*500.0f - 1000.0f);
 		if (countingdummy % 1000 == 0) {
-			printf("ring %d loc %f %f %f\n", i,ringCoordinates[i][0], ringCoordinates[i][1], ringCoordinates[i][2]);
+			printf("ring %d loc %f %f %f\n", i, ringCoordinates[i][0], ringCoordinates[i][1], ringCoordinates[i][2]);
 		}
 		if (ringGreenSignal[i] == 1) {
 			glBindTexture(GL_TEXTURE_2D, texture[5]); //bind texture 
@@ -1050,7 +1047,7 @@ void paintGL(void)
 		GL_FALSE,//normalize
 		0,//stride
 		(void*)0//array buffer offset
-	);
+		);
 	glEnableVertexAttribArray(1);
 	glBindBuffer(GL_ARRAY_BUFFER, uvboID[wonderstarID]);
 	glVertexAttribPointer(
@@ -1060,7 +1057,7 @@ void paintGL(void)
 		GL_FALSE,//normalize
 		0,//stride
 		(void*)0//array buffer offset
-	);
+		);
 	glEnableVertexAttribArray(2);
 	glBindBuffer(GL_ARRAY_BUFFER, nboID[wonderstarID]);
 	glVertexAttribPointer(
@@ -1070,7 +1067,7 @@ void paintGL(void)
 		GL_FALSE,//normalize
 		0,//stride
 		(void*)0//array buffer offset
-	);
+		);
 	// bind texture
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, texture[3]);
@@ -1098,7 +1095,7 @@ void paintGL(void)
 			GL_FALSE,//normalize
 			0,//stride
 			(void*)0//array buffer offset
-		);
+			);
 		glEnableVertexAttribArray(1);
 		glBindBuffer(GL_ARRAY_BUFFER, uvboID[rockID]);
 		glVertexAttribPointer(
@@ -1108,7 +1105,7 @@ void paintGL(void)
 			GL_FALSE,//normalize
 			0,//stride
 			(void*)0//array buffer offset
-		);
+			);
 		glEnableVertexAttribArray(2);
 		glBindBuffer(GL_ARRAY_BUFFER, nboID[rockID]);
 		glVertexAttribPointer(
@@ -1118,7 +1115,7 @@ void paintGL(void)
 			GL_FALSE,//normalize
 			0,//stride
 			(void*)0//array buffer offset
-		);
+			);
 		// bind texture
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture[4]);
@@ -1158,7 +1155,7 @@ int main(int argc, char *argv[])
 	glutSpecialFunc(move);
 	glutPassiveMotionFunc(PassiveMouse);
 	CreateRand_ModelM();
-	
+
 	glutMainLoop();
 
 	return 0;
