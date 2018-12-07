@@ -37,4 +37,9 @@
 	- ambient is normal
 - events
 	- spacecraft crossing rings texture change
+## 7/12
+- enhanced lighting
+- Bonus
+	- normal mapping of earth
+	- another light source (red light)
 	
