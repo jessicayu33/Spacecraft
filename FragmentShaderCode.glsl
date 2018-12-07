@@ -1,5 +1,6 @@
 // change version!!!
 #version 450
+//#version 430
 out vec4 daColor;
 
 in vec3 theColor;
